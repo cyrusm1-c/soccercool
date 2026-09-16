@@ -4,15 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Single File HTML5 Game</title>
-    
-    <!-- 1. EMBEDDED CSS (STYLING) -->
     <style>
+        /* 1. CSS STYLING */
         body {
             margin: 0;
-            padding: 0;
-            background-color: #222;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #222;
+            color: white;
+            font-family: sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -20,144 +18,144 @@
             height: 100vh;
             overflow: hidden;
         }
-        #game-container {
-            text-align: center;
-        }
-        canvas {
-            background-color: #111;
-            border: 4px solid #444;
-            border-radius: 8px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            display: block;
-        }
-        .ui-text {
+        #scoreBoard {
             font-size: 24px;
             margin-bottom: 10px;
-            font-weight: bold;
+        }
+        canvas {
+            background: #111;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
-
     <!-- 2. HTML STRUCTURE -->
-    <div id="game-container">
-        <div class="ui-text">Score: <span id="score-display">0</span></div>
-        <!-- The canvas serves as our graphical whiteboard -->
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
-    </div>
+    <div id="scoreBoard">Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
 
-    <!-- 3. EMBEDDED JAVASCRIPT (GAME LOGIC) -->
+    <!-- 3. JAVASCRIPT LOGIC -->
     <script>
-        // --- Setup Canvas and Context ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score-display');
+        const scoreElement = document.getElementById('score');
 
-        // --- Game State ---
+        // Game State
         let score = 0;
-        
-        // Player properties
+        let gameOver = false;
+
+        // Player (Circle - positioned near the bottom)
         const player = {
-            x: canvas.width / 2 - 20,
-            y: canvas.height - 50,
-            width: 40,
-            height: 40,
-            speed: 8,
-            color: '#00ffcc'
+            radius: 20,
+            x: 200, // Center X
+            y: 460, // Center Y
+            speed: 7,
+            dx: 0
         };
 
-        // Target (Collectible) properties
-        const target = {
-            x: Math.random() * (canvas.width - 30),
-            y: 0,
-            radius: 15,
-            speed: 4,
-            color: '#ff4444'
+        // Falling Object (Circle)
+        const item = {
+            radius: 12,
+            x: 0, // Assigned in resetItem
+            y: 0, // Center Y
+            speed: 4
         };
 
-        // Track keyboard inputs
-        const keys = {
-            ArrowLeft: false,
-            ArrowRight: false
-        };
+        // Initialize item position safely within walls
+        resetItem();
 
-        // --- Input Listeners ---
-        window.addEventListener('keydown', (e) => {
-            if (e.key in keys) keys[e.key] = true;
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'd') player.dx = player.speed;
+            if (e.key === 'ArrowLeft' || e.key === 'a') player.dx = -player.speed;
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.key in keys) keys[e.key] = false;
+        document.addEventListener('keyup', (e) => {
+            if (['ArrowRight', 'ArrowLeft', 'a', 'd'].includes(e.key)) player.dx = 0;
         });
 
-        // --- Game Functions ---
-        function resetTarget() {
-            target.x = Math.random() * (canvas.width - target.radius);
-            target.y = 0;
-            // Slightly increase speed as score goes up to add difficulty
-            target.speed = 4 + Math.floor(score / 5);
-        }
-
+        // Update Game Objects
         function update() {
-            // Move player left/right and keep them on screen
-            if (keys.ArrowLeft && player.x > 0) {
-                player.x -= player.speed;
-            }
-            if (keys.ArrowRight && player.x < canvas.width - player.width) {
-                player.x += player.speed;
-            }
+            if (gameOver) return;
 
-            // Move falling target downwards
-            target.y += target.speed;
-
-            // Check Collision: Player catches the target
-            if (player.x < target.x + target.radius &&
-                player.x + player.width > target.x &&
-                player.y < target.y + target.radius &&
-                player.y + player.height > target.y) {
-                score++;
-                scoreDisplay.textContent = score;
-                resetTarget();
+            // Move Player & Keep Circle In Bounds
+            player.x += player.dx;
+            if (player.x - player.radius < 0) {
+                player.x = player.radius;
+            }
+            if (player.x + player.radius > canvas.width) {
+                player.x = canvas.width - player.radius;
             }
 
-            // Check Miss: Target hits the bottom of the screen
-            if (target.y > canvas.height) {
-                score = 0; // Reset score on miss
-                scoreDisplay.textContent = score;
-                resetTarget();
+            // Move Falling Item
+            item.y += item.speed;
+
+            // Check Circle-to-Circle Collision using Pythagorean theorem (Distance Formula)
+            const distX = item.x - player.x;
+            const distY = item.y - player.y;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+
+            if (distance < player.radius + item.radius) {
+                score += 10;
+                scoreElement.innerText = score;
+                resetItem();
+                item.speed += 0.5; // Increase difficulty
+            }
+
+            // Check if Item Hit Bottom (Game Over)
+            if (item.y - item.radius > canvas.height) {
+                gameOver = true;
             }
         }
 
+        // Reset Item to Top
+        function resetItem() {
+            // Keep completely inside the left and right walls
+            item.x = item.radius + Math.random() * (canvas.width - item.radius * 2);
+            item.y = -item.radius; // Spawn just above viewable area
+        }
+
+        // Draw Everything
         function draw() {
-            // Clear the entire canvas board before drawing the next frame
+            // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Player
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // Draw Falling Target
+            // Draw Player (Circle)
             ctx.beginPath();
-            // Parameters: x, y, radius, startAngle, endAngle
-            ctx.arc(target.x, target.y, target.radius, 0, 2 * Math.PI);
-
-            // Optional: Add color and render
-            ctx.fillStyle = targot.color;
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#00ffcc';
             ctx.fill();
+            ctx.closePath();
 
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = "black";
-            ctx.stroke();
-        // --- Core Game Loop ---
-        function gameLoop() {
-            update();
-            draw();
-            // Automatically invokes the loop synced with the screen refresh rate (~60fps)
-            requestAnimationFrame(gameLoop);
+            // Draw Falling Item (Circle)
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4444';
+            ctx.fill();
+            ctx.closePath();
+
+            // Draw Game Over Screen
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                ctx.font = '16px sans-serif';
+                ctx.fillText('Refresh page to restart', canvas.width / 2, canvas.height / 2 + 40);
+            }
         }
 
-        // Initialize the game loop
-        gameLoop();
+        // Main Game Loop
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Start the game
+        loop();
     </script>
 </body>
 </html>
