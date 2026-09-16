@@ -70,8 +70,7 @@
         const target = {
             x: Math.random() * (canvas.width - 30),
             y: 0,
-            width: 30,
-            height: 30,
+            radius: 15,
             speed: 4,
             color: '#ff4444'
         };
@@ -138,10 +137,17 @@
             ctx.fillRect(player.x, player.y, player.width, player.height);
 
             // Draw Falling Target
-            ctx.fillStyle = target.color;
-            ctx.fillRect(target.x, target.y, target.width, target.height);
-        }
+            ctx.beginPath();
+            // Parameters: x, y, radius, startAngle, endAngle
+            ctx.arc(target.x, target.y, target.radius, 0, 2 * Math.PI);
 
+            // Optional: Add color and render
+            ctx.fillStyle = targot.color;
+            ctx.fill();
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "black";
+            ctx.stroke();
         // --- Core Game Loop ---
         function gameLoop() {
             update();
