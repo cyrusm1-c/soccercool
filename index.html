@@ -96,7 +96,7 @@
             const distance = Math.sqrt(distX * distX + distY * distY);
 
             if (distance < player.radius + item.radius) {
-                score += 1;
+                score++;
                 scoreElement.innerText = score;
                 resetItem();
                 item.speed += 0.5; // Increase difficulty
