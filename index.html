@@ -92,7 +92,7 @@
 
         // --- Game Functions ---
         function resetTarget() {
-            target.x = Math.random() * (canvas.width - target.width);
+            target.x = Math.random() * (canvas.width - target.radius);
             target.y = 0;
             // Slightly increase speed as score goes up to add difficulty
             target.speed = 4 + Math.floor(score / 5);
@@ -111,9 +111,9 @@
             target.y += target.speed;
 
             // Check Collision: Player catches the target
-            if (player.x < target.x + target.width &&
+            if (player.x < target.x + target.radius &&
                 player.x + player.width > target.x &&
-                player.y < target.y + target.height &&
+                player.y < target.y + target.radius &&
                 player.y + player.height > target.y) {
                 score++;
                 scoreDisplay.textContent = score;
